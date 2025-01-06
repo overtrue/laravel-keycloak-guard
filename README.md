@@ -3,13 +3,15 @@
 </p>
 <p align="center">
 &nbsp;
-        <img src="https://img.shields.io/packagist/v/robsontenorio/laravel-keycloak-guard.svg" />
-        <img src="https://img.shields.io/packagist/dt/robsontenorio/laravel-keycloak-guard.svg" />
-      <img src="https://codecov.io/gh/robsontenorio/laravel-keycloak-guard/branch/master/graph/badge.svg?token=8ZpDarpss1"/>
+        <img src="https://img.shields.io/packagist/v/overtrue/laravel-keycloak-guard.svg" />
+        <img src="https://img.shields.io/packagist/dt/overtrue/laravel-keycloak-guard.svg" />
+      <img src="https://codecov.io/gh/overtrue/laravel-keycloak-guard/branch/master/graph/badge.svg?token=8ZpDarpss1"/>
 
 </p>
 
 # Simple Keycloak Guard for Laravel
+
+> This package is a fork of [robsontenorio/laravel-keycloak-guard](https://github.com/robsontenorio/laravel-keycloak-guard) with additional features.
 
 This package helps you authenticate users on a Laravel API based on JWT tokens generated from **Keycloak Server**.
 
@@ -59,7 +61,7 @@ This package helps you authenticate users on a Laravel API based on JWT tokens g
 Require the package
 
 ```
-composer require robsontenorio/laravel-keycloak-guard
+composer require overtrue/laravel-keycloak-guard
 ```
 
 **If you are using Lumen**, register the provider in your boostrap app file `bootstrap/app.php`.
@@ -393,4 +395,8 @@ composer test:coverage
 
 # Contact
 
-Twitter [@robsontenorio](https://twitter.com/robsontenorio)
+You can reach me on [Twitter](https://twitter.com/overtrue666) or [create an issue](https://github.com/overtrue/laravel-keycloak-guard/issues/new).
+
+# License
+
+MIT
