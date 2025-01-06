@@ -109,6 +109,10 @@ class KeycloakGuard implements Guard
             return $this->user;
         }
 
+        if (!$this->getTokenForRequest()) {
+            return null;
+        }
+
         $this->authenticate();
 
         if ($this->user && $this->config['append_decoded_token']) {
@@ -167,7 +171,12 @@ class KeycloakGuard implements Guard
                 throw new UserNotFoundException("User not found. Credentials: ".json_encode($credentials));
             }
         } else {
-            $class = $this->provider->getModel();
+            $class = $this->config['user_model'] ?? config("auth.providers.users.model") ?? '\App\Models\User';
+
+            if (!class_exists($class)) {
+                throw new \Exception("User model class not found, please check the `user_model` key in the `keycloak.php` configuration file.");
+            }
+
             $user = new $class();
         }
 
@@ -187,11 +196,11 @@ class KeycloakGuard implements Guard
             return;
         }
 
-        $token_resource_access = array_keys((array)($this->decodedToken->resource_access ?? []));
-        $allowed_resources = explode(',', $this->config['allowed_resources']);
+        $tokenResourceAccess = array_keys((array)($this->decodedToken->resource_access ?? []));
+        $allowedResources = explode(',', $this->config['allowed_resources']);
 
-        if (count(array_intersect($token_resource_access, $allowed_resources)) == 0) {
-            throw new ResourceAccessNotAllowedException("The decoded JWT token does not have a valid `resource_access` permission allowed by the API. Allowed resources: ".$this->config['allowed_resources'].". Token resources: ".json_encode($token_resource_access));
+        if (count(array_intersect($tokenResourceAccess, $allowedResources)) == 0) {
+            throw new ResourceAccessNotAllowedException("The decoded JWT token does not have a valid `resource_access` permission allowed by the API. Allowed resources: ".$this->config['allowed_resources'].". Token resources: ".json_encode($tokenResourceAccess));
         }
     }
 
@@ -203,13 +212,13 @@ class KeycloakGuard implements Guard
      */
     public function hasRole($resource, $role)
     {
-        $token_resource_access = (array)$this->decodedToken->resource_access;
+        $tokenResourceAccess = (array)$this->decodedToken->resource_access;
 
-        if (array_key_exists($resource, $token_resource_access)) {
-            $token_resource_values = (array)$token_resource_access[$resource];
+        if (array_key_exists($resource, $tokenResourceAccess)) {
+            $tokenResourceValues = (array)$tokenResourceAccess[$resource];
 
-            if (array_key_exists('roles', $token_resource_values) &&
-              in_array($role, $token_resource_values['roles'])) {
+            if (array_key_exists('roles', $tokenResourceValues) &&
+              in_array($role, $tokenResourceValues['roles'])) {
                 return true;
             }
         }
@@ -225,14 +234,14 @@ class KeycloakGuard implements Guard
      */
     public function hasAnyRole($resource, array $roles)
     {
-        $token_resource_access = (array)$this->decodedToken->resource_access;
+        $tokenResourceAccess = (array)$this->decodedToken->resource_access;
 
-        if (array_key_exists($resource, $token_resource_access)) {
-            $token_resource_values = (array)$token_resource_access[$resource];
+        if (array_key_exists($resource, $tokenResourceAccess)) {
+            $tokenResourceValues = (array)$tokenResourceAccess[$resource];
 
-            if (array_key_exists('roles', $token_resource_values)) {
+            if (array_key_exists('roles', $tokenResourceValues)) {
                 foreach ($roles as $role) {
-                    if (in_array($role, $token_resource_values['roles'])) {
+                    if (in_array($role, $tokenResourceValues['roles'])) {
                         return true;
                     }
                 }

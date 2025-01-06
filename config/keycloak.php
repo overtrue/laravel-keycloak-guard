@@ -7,6 +7,8 @@ return [
 
     'load_user_from_database' => env('KEYCLOAK_LOAD_USER_FROM_DATABASE', true),
 
+    'user_model' => env('KEYCLOAK_USER_MODEL'), // default: config("auth.providers.users.model")
+
     'user_provider_custom_retrieve_method' => env('KEYCLOAK_USER_PROVIDER_CUSTOM_RETRIEVE_METHOD', null),
 
     'user_provider_credential' => env('KEYCLOAK_USER_PROVIDER_CREDENTIAL', 'username'),

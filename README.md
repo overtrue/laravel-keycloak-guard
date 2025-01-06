@@ -62,7 +62,7 @@ Require the package
 composer require robsontenorio/laravel-keycloak-guard
 ```
 
-**If you are using Lumen**, register the provider in your boostrap app file `bootstrap/app.php`.  
+**If you are using Lumen**, register the provider in your boostrap app file `bootstrap/app.php`.
 For facades, uncomment `$app->withFacades();` in your boostrap app file `bootstrap/app.php`
 
 ```php
@@ -88,7 +88,7 @@ Changes on `config/auth.php`
 'defaults' => [
     'guard' => 'api',                 # <-- This
     'passwords' => 'users',
-],    
+],
 'guards' => [
     'api' => [
         'driver' => 'keycloak',       # <-- This
@@ -160,12 +160,18 @@ This will allow you to customize the way you want to interact with your database
 
 If using this feature, the values defined for `user_provider_credential` and `token_principal_attribute` will be ignored. Requires 'load_user_from_database' to be true. Your custom method needs the parameters $token (an object) and $credentials (an associative array).
 
-✔️ **user_provider_credential**
+**user_model**
 
-_Required.
 Default is `username`._
 
 The field from "users" table that contains the user unique identifier (eg. username, email, nickname). This will be confronted against `token_principal_attribute` attribute, while authenticating.
+
+✔️ **user_provider_credential**
+
+_Required.
+Default is `auth.providers.users.model` or `App\Models\User`._
+
+The class name of the User model that will be used to create user object.
 
 ✔️ **token_principal_attribute**
 
