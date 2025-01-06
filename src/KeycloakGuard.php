@@ -2,16 +2,20 @@
 
 namespace KeycloakGuard;
 
-use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Traits\Macroable;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
 use KeycloakGuard\Exceptions\TokenException;
 use KeycloakGuard\Exceptions\UserNotFoundException;
 
 class KeycloakGuard implements Guard
 {
+    use GuardHelpers;
+    use Macroable;
+
     protected $config;
     protected $user = null;
     protected $provider;
@@ -26,26 +30,6 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Decode token, validate and authenticate user
-     *
-     * @return mixed
-     */
-    protected function authenticate()
-    {
-        try {
-            $this->decodedToken = Token::decode($this->getTokenForRequest(), $this->config['realm_public_key'], $this->config['leeway'], $this->config['token_encryption_algorithm']);
-        } catch (\Exception $e) {
-            throw new TokenException($e->getMessage());
-        }
-
-        if ($this->decodedToken) {
-            $this->validate([
-                $this->config['user_provider_credential'] => $this->decodedToken->{$this->config['token_principal_attribute']}
-            ]);
-        }
-    }
-
-    /**
      * Get the token for the current request.
      *
      * @return string
@@ -54,48 +38,13 @@ class KeycloakGuard implements Guard
     {
         $inputKey = $this->config['input_key'] ?? "";
 
-        return $this->request->bearerToken() ?? $this->request->input($inputKey);
-    }
+        $token = $this->request->query($inputKey);
 
-    /**
-       * Determine if the current user is authenticated.
-       *
-       * @return bool
-       */
-    public function check()
-    {
-        return !is_null($this->user());
-    }
+        if (empty($token)) {
+            $token = $this->request->bearerToken();
+        }
 
-    /**
-     * Determine if the guard has a user instance.
-     *
-     * @return bool
-     */
-    public function hasUser()
-    {
-        return !is_null($this->user());
-    }
-
-    /**
-     * Determine if the current user is a guest.
-     *
-     * @return bool
-     */
-    public function guest()
-    {
-        return !$this->check();
-    }
-
-    /**
-    * Set the current user.
-    *
-    * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-    * @return void
-    */
-    public function setUser(Authenticatable $user)
-    {
-        $this->user = $user;
+        return $token;
     }
 
     /**
@@ -109,11 +58,13 @@ class KeycloakGuard implements Guard
             return $this->user;
         }
 
-        if (!$this->getTokenForRequest()) {
+        $token = $this->getTokenForRequest();
+
+        if (!$token) {
             return null;
         }
 
-        $this->authenticate();
+        $this->retrieveByToken($token);
 
         if ($this->user && $this->config['append_decoded_token']) {
             $this->user->token = $this->decodedToken;
@@ -123,29 +74,30 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Get the ID for the currently authenticated user.
+     * Returns full decoded JWT token from athenticated user
      *
-     * @return int|null
+     * @return mixed|null
      */
-    public function id()
-    {
-        if ($user = $this->user()) {
-            return $this->user()->id;
-        }
-    }
-
-    /**
-    * Returns full decoded JWT token from athenticated user
-    *
-    * @return mixed|null
-    */
     public function token()
     {
         if (!$this->decodedToken) {
-            $this->authenticate();
+            $this->parseToken($this->getTokenForRequest());
         }
 
         return json_encode($this->decodedToken);
+    }
+
+    public function retrieveByToken(string $token)
+    {
+        $this->parseToken($token);
+
+        if ($this->decodedToken) {
+            $this->validate([
+                $this->config['user_provider_credential'] => $this->decodedToken->{$this->config['token_principal_attribute']}
+            ]);
+        }
+
+        return $this->user;
     }
 
     /**
@@ -205,6 +157,19 @@ class KeycloakGuard implements Guard
     }
 
     /**
+     * Set the current request instance.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return $this
+     */
+    public function setRequest(Request $request)
+    {
+        $this->request = $request;
+
+        return $this;
+    }
+
+    /**
      * Check if authenticated user has a especific role into resource
      * @param string $resource
      * @param string $role
@@ -218,7 +183,7 @@ class KeycloakGuard implements Guard
             $tokenResourceValues = (array)$tokenResourceAccess[$resource];
 
             if (array_key_exists('roles', $tokenResourceValues) &&
-              in_array($role, $tokenResourceValues['roles'])) {
+                in_array($role, $tokenResourceValues['roles'])) {
                 return true;
             }
         }
@@ -293,5 +258,19 @@ class KeycloakGuard implements Guard
             $this->scopes(),
             is_string($scopes) ? [$scopes] : $scopes
         )) > 0;
+    }
+
+    /**
+     * @param string $token
+     *
+     * @return void
+     */
+    protected function parseToken(string $token): void
+    {
+        try {
+            $this->decodedToken = Token::decode($token, $this->config['realm_public_key'], $this->config['leeway'], $this->config['token_encryption_algorithm']);
+        } catch (\Exception $e) {
+            throw new TokenException($e->getMessage());
+        }
     }
 }

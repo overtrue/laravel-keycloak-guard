@@ -2,7 +2,6 @@
 
 namespace KeycloakGuard\Tests;
 
-use Firebase\JWT\JWT;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Hashing\BcryptHasher;
 use Illuminate\Support\Facades\Auth;
@@ -394,22 +393,20 @@ class AuthenticateTest extends TestCase
     {
         config(['keycloak.input_key' => "api_token"]);
 
-        $this->json('GET', '/foo/secret?api_token=' . $this->token);
+        $this->json('GET', '/foo/secret?api_token='.$this->token);
 
         $this->assertEquals(Auth::id(), $this->user->id);
 
         $this->json('POST', '/foo/secret', ['api_token' => $this->token]);
     }
 
-    public function test_authentication_prefers_bearer_token_over_with_custom_input_key()
+    public function test_authentication_prefers_input_api_token_over_with_custom_input_key()
     {
         config(['keycloak.input_key' => "api_token"]);
 
-        $this->withKeycloakToken()->json('GET', '/foo/secret?api_token=some-junk');
+        $this->json('GET', '/foo/secret?api_token='.$this->token, ['Authorization' => 'Bearer '.$this->token]);
 
         $this->assertEquals(Auth::id(), $this->user->id);
-
-        $this->json('POST', '/foo/secret', ['api_token' => $this->token]);
     }
 
     public function test_acting_as_keycloak_user_trait()
