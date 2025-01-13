@@ -5,10 +5,8 @@ namespace KeycloakGuard;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Traits\Macroable;
-use KeycloakGuard\Exceptions\KeycloakGuardException;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
 use KeycloakGuard\Exceptions\TokenException;
 use KeycloakGuard\Exceptions\UserNotFoundException;
@@ -19,9 +17,13 @@ class KeycloakGuard implements Guard
     use Macroable;
 
     protected $config;
+
     protected $user = null;
+
     protected $provider;
+
     protected $decodedToken = null;
+
     protected Request $request;
 
     public function __construct(UserProvider $provider, Request $request)
@@ -38,7 +40,7 @@ class KeycloakGuard implements Guard
      */
     public function getTokenForRequest()
     {
-        $inputKey = $this->config['input_key'] ?? "";
+        $inputKey = $this->config['input_key'] ?? '';
 
         $token = $this->request->query($inputKey);
 
@@ -56,13 +58,13 @@ class KeycloakGuard implements Guard
      */
     public function user()
     {
-        if (!is_null($this->user)) {
+        if (! is_null($this->user)) {
             return $this->user;
         }
 
         $token = $this->getTokenForRequest();
 
-        if (!$token) {
+        if (! $token) {
             return null;
         }
 
@@ -82,7 +84,7 @@ class KeycloakGuard implements Guard
      */
     public function token()
     {
-        if (!$this->decodedToken) {
+        if (! $this->decodedToken) {
             $this->parseToken($this->getTokenForRequest());
         }
 
@@ -95,7 +97,7 @@ class KeycloakGuard implements Guard
 
         if ($this->decodedToken) {
             $this->validate([
-                $this->config['user_provider_credential'] => $this->decodedToken->{$this->config['token_principal_attribute']}
+                $this->config['user_provider_credential'] => $this->decodedToken->{$this->config['token_principal_attribute']},
             ]);
         }
 
@@ -105,9 +107,7 @@ class KeycloakGuard implements Guard
     /**
      * Validate a user's credentials.
      *
-     * @param array $credentials
      *
-     * @return bool
      * @throws \Exception
      */
     public function validate(array $credentials = []): bool
@@ -123,23 +123,12 @@ class KeycloakGuard implements Guard
                 $user = $this->provider->retrieveByCredentials($credentials);
             }
 
-            if (!$user) {
-                throw new UserNotFoundException("User not found. Credentials: ".json_encode($credentials));
+            if (! $user) {
+                throw new UserNotFoundException('User not found. Credentials: '.json_encode($credentials));
             }
         } else {
-            $class = $this->config['user_model'] ?? config("auth.providers.users.model");
-            $keyName = $this->config['token_principal_attribute'] ?? 'id';
-
-            if (!class_exists($class)) {
-                throw new KeycloakGuardException("User model class not found: ".$class);
-            }
-
-            if ($class instanceof Model) {
-                $user = new $class();
-                $user->{$user->getKeyName()} = $credentials[$keyName] ?? null;
-            } else {
-                $user = new User($credentials[$keyName] ?? null, $this->decodedToken);
-            }
+            $keyName = $this->config['user_provider_credential'];
+            $user = new User($credentials[$keyName] ?? null, $this->decodedToken);
         }
 
         $this->setUser($user);
@@ -158,18 +147,17 @@ class KeycloakGuard implements Guard
             return;
         }
 
-        $tokenResourceAccess = array_keys((array)($this->decodedToken->resource_access ?? []));
+        $tokenResourceAccess = array_keys((array) ($this->decodedToken->resource_access ?? []));
         $allowedResources = explode(',', $this->config['allowed_resources']);
 
         if (count(array_intersect($tokenResourceAccess, $allowedResources)) == 0) {
-            throw new ResourceAccessNotAllowedException("The decoded JWT token does not have a valid `resource_access` permission allowed by the API. Allowed resources: ".$this->config['allowed_resources'].". Token resources: ".json_encode($tokenResourceAccess));
+            throw new ResourceAccessNotAllowedException('The decoded JWT token does not have a valid `resource_access` permission allowed by the API. Allowed resources: '.$this->config['allowed_resources'].'. Token resources: '.json_encode($tokenResourceAccess));
         }
     }
 
     /**
      * Set the current request instance.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return $this
      */
     public function setRequest(Request $request)
@@ -181,16 +169,17 @@ class KeycloakGuard implements Guard
 
     /**
      * Check if authenticated user has a especific role into resource
-     * @param string $resource
-     * @param string $role
+     *
+     * @param  string  $resource
+     * @param  string  $role
      * @return bool
      */
     public function hasRole($resource, $role)
     {
-        $tokenResourceAccess = (array)$this->decodedToken->resource_access;
+        $tokenResourceAccess = (array) $this->decodedToken->resource_access;
 
         if (array_key_exists($resource, $tokenResourceAccess)) {
-            $tokenResourceValues = (array)$tokenResourceAccess[$resource];
+            $tokenResourceValues = (array) $tokenResourceAccess[$resource];
 
             if (array_key_exists('roles', $tokenResourceValues) &&
                 in_array($role, $tokenResourceValues['roles'])) {
@@ -203,16 +192,17 @@ class KeycloakGuard implements Guard
 
     /**
      * Check if authenticated user has a any role into resource
-     * @param string $resource
-     * @param string $role
+     *
+     * @param  string  $resource
+     * @param  string  $role
      * @return bool
      */
     public function hasAnyRole($resource, array $roles)
     {
-        $tokenResourceAccess = (array)$this->decodedToken->resource_access;
+        $tokenResourceAccess = (array) $this->decodedToken->resource_access;
 
         if (array_key_exists($resource, $tokenResourceAccess)) {
-            $tokenResourceValues = (array)$tokenResourceAccess[$resource];
+            $tokenResourceValues = (array) $tokenResourceAccess[$resource];
 
             if (array_key_exists('roles', $tokenResourceValues)) {
                 foreach ($roles as $role) {
@@ -228,7 +218,6 @@ class KeycloakGuard implements Guard
 
     /**
      * Get scope(s)
-     * @return array
      */
     public function scopes(): array
     {
@@ -243,8 +232,6 @@ class KeycloakGuard implements Guard
 
     /**
      * Check if authenticated user has a especific scope
-     * @param string $scope
-     * @return bool
      */
     public function hasScope(string $scope): bool
     {
@@ -259,8 +246,6 @@ class KeycloakGuard implements Guard
 
     /**
      * Check if authenticated user has a any scope
-     * @param array $scopes
-     * @return bool
      */
     public function hasAnyScope(array $scopes): bool
     {
@@ -270,11 +255,6 @@ class KeycloakGuard implements Guard
         )) > 0;
     }
 
-    /**
-     * @param string $token
-     *
-     * @return void
-     */
     protected function parseToken(string $token): void
     {
         try {

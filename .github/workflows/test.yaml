@@ -53,7 +53,7 @@ jobs:
         run: composer test:coverage
 
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODE_COV_TOKEN }}
           files: .coverage/clover.xml

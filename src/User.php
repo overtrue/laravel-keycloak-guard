@@ -12,14 +12,14 @@ class User implements Authenticatable
         //
     }
 
-    protected function isPrincipalAttribute(string $key): mixed
+    protected function isProviderCredentialAttribute(string $key): mixed
     {
-        return $key === config('keycloak.token_principal_attribute');
+        return $key === config('keycloak.user_provider_credential');
     }
 
     public function __call(string $method, array $parameters): mixed
     {
-        if ($this->isPrincipalAttribute($method)) {
+        if ($this->isProviderCredentialAttribute($method)) {
             return $this->key;
         }
 
@@ -28,7 +28,7 @@ class User implements Authenticatable
 
     public function __get(string $name): mixed
     {
-        if ($this->isPrincipalAttribute($name)) {
+        if ($this->isProviderCredentialAttribute($name)) {
             return $this->key;
         }
 
@@ -37,7 +37,7 @@ class User implements Authenticatable
 
     public function getAuthIdentifierName()
     {
-        return config('keycloak.token_principal_attribute', 'id');
+        return config('keycloak.user_provider_credential', 'id');
     }
 
     public function getAuthIdentifier()

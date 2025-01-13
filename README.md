@@ -1,74 +1,53 @@
 <p align="center">
-  <img src="bird.png">
+  <img src="bird.png" alt="">
 </p>
 <p align="center">
-&nbsp;
-        <img src="https://img.shields.io/packagist/v/overtrue/laravel-keycloak-guard.svg" />
-        <img src="https://img.shields.io/packagist/dt/overtrue/laravel-keycloak-guard.svg" />
-      <img src="https://codecov.io/gh/overtrue/laravel-keycloak-guard/branch/master/graph/badge.svg?token=8ZpDarpss1"/>
-
+&nbsp;   <img src="https://img.shields.io/packagist/v/overtrue/laravel-keycloak-guard.svg"  alt=""/>
+    <img src="https://img.shields.io/packagist/dt/overtrue/laravel-keycloak-guard.svg"  alt=""/>
+    <img src="https://codecov.io/gh/overtrue/laravel-keycloak-guard/branch/master/graph/badge.svg?token=8ZpDarpss1" alt=""/>
 </p>
 
 # Simple Keycloak Guard for Laravel
 
-> This package is a fork of [robsontenorio/laravel-keycloak-guard](https://github.com/robsontenorio/laravel-keycloak-guard) with additional features.
+> A fork of [robsontenorio/laravel-keycloak-guard](https://github.com/robsontenorio/laravel-keycloak-guard) with additional features.
 
 This package helps you authenticate users on a Laravel API based on JWT tokens generated from **Keycloak Server**.
 
 # Requirements
 
-✔️ I`m building an API with Laravel.
+- Building an API with Laravel.
+- Not using Laravel Passport for authentication, as Keycloak Server handles authentication.
+- Frontend is a separate project.
+- Frontend users authenticate directly on Keycloak Server to obtain a JWT token. This process is independent of the Laravel API.
+- Frontend retains the JWT token from Keycloak Server.
+- Frontend makes requests to the Laravel API with the JWT token.
 
-✔️ I will not use Laravel Passport for authentication, because Keycloak Server will do the job.
-
-✔️ The frontend is a separated project.
-
-✔️ The frontend users authenticate **directly on Keycloak Server** to obtain a JWT token. This process have nothing to do with the Laravel API.
-
-✔️ The frontend keep the JWT token from Keycloak Server.
-
-✔️ The frontend make requests to the Laravel API, with that token.
-
-💔 If your app does not match requirements, probably you are looking for https://socialiteproviders.com/Keycloak or https://github.com/Vizir/laravel-keycloak-web-guard
+**Note:** If your application does not meet these requirements, you might be looking for [Socialite Providers Keycloak](https://socialiteproviders.com/Keycloak) or [Vizir Laravel Keycloak Web Guard](https://github.com/Vizir/laravel-keycloak-web-guard).
 
 # The flow
 
 <p align="center">
-  <img src="flow.png">
+  <img src="flow.png" alt="Authentication Flow">
 </p>
 
 1. The frontend user authenticates on Keycloak Server
-
-1. The frontend user obtains a JWT token.
-
-1. In another moment, the frontend user makes a request to some protected endpoint on a Laravel API, with that token.
-
-1. The Laravel API (through `Keycloak Guard`) handle it.
-
+2. The frontend user obtains a JWT token.
+3. In another moment, the frontend user makes a request to some protected endpoint on a Laravel API, with that token.
+4. The Laravel API (through `Keycloak Guard`) handle it.
    - Verify token signature.
    - Verify token structure.
    - Verify token expiration time.
    - Verify if my API allows `resource access` from token.
+5. If everything is ok, then find the user on database and authenticate it on my API.
+6. Optionally, the user can be created / updated in the API users database.
+7. Return response
 
-1. If everything is ok, then find the user on database and authenticate it on my API.
+# Installation
 
-1. Optionally, the user can be created / updated in the API users database.
+Require the package via Composer:
 
-1. Return response
-
-# Install
-
-Require the package
-
-```
+```bash
 composer require overtrue/laravel-keycloak-guard
-```
-
-**If you are using Lumen**, register the provider in your boostrap app file `bootstrap/app.php`.
-For facades, uncomment `$app->withFacades();` in your boostrap app file `bootstrap/app.php`
-
-```php
-$app->register(\KeycloakGuard\KeycloakGuardServiceProvider::class);
 ```
 
 ### Example configuration (.env)
@@ -84,16 +63,16 @@ KEYCLOAK_LEEWAY=60                          # Optional, but solve some weird iss
 
 ### Auth Guard
 
-Changes on `config/auth.php`
+Update your `config/auth.php` to use the `keycloak` driver for API authentication.
 
 ```php
 'defaults' => [
-    'guard' => 'api',                 # <-- This
+    'guard' => 'api', // Set the default guard to 'api'.
     'passwords' => 'users',
 ],
 'guards' => [
     'api' => [
-        'driver' => 'keycloak',       # <-- This
+        'driver' => 'keycloak', // Use 'keycloak' as the driver for the 'api' guard.
         'provider' => 'users',
     ],
 ],
@@ -101,7 +80,7 @@ Changes on `config/auth.php`
 
 ### Routes
 
-Just protect some endpoints on `routes/api.php` and **you are done!**
+Protect your API endpoints by applying the `auth:api` middleware in `routes/api.php`.
 
 ```php
 // public endpoints
@@ -113,16 +92,17 @@ Route::get('/hello', function () {
 Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/protected-endpoint', 'SecretController@index');
 
-    // more endpoints ...
+    // ...
 });
 ```
 
+Any routes within the auth:api middleware group will require a valid JWT token issued by Keycloak Server for access.
 
 # Configuration
 
 ## Keycloak Guard
 
-⚠️ When editing `.env` make sure all strings **are trimmed.**
+⚠️ When editing `.env`, ensure all strings **are trimmed** to avoid parsing issues.
 
 ```bash
 # Publish config file
@@ -130,97 +110,74 @@ Route::group(['middleware' => 'auth:api'], function () {
 php artisan vendor:publish  --provider="KeycloakGuard\KeycloakGuardServiceProvider"
 ```
 
-✔️ **realm_public_key**
+## Configuration Options
 
-_Required._
+Below are the configuration options available for Keycloak Guard:
 
-The Keycloak Server realm public key (string).
+### realm_public_key
+- **Type**: `string`
+- **Required**: Yes
+- **Description**: The public key of your Keycloak realm. Obtain it from the Keycloak admin console under “**Realm Settings**” > “**Keys**” > “**Public Key**”.
 
-> How to get realm public key? Click on "Realm Settings" > "Keys" > "Algorithm RS256 (or defined under token_encryption_algorithm configuration)" Line > "Public Key" Button
+### token_encryption_algorithm
+- **Type**: `string`
+- **Default**: `RS256`
+- **Description**: The JWT token encryption algorithm used by Keycloak.
 
-✔️ **token_encryption_algorithm**
+### load_user_from_database
+- **Type**: `boolean`
+- **Default**: `true`
+- **Description**: Determines whether to load the user from the database. Set to false if you do not have a `users` table or prefer not to load users from the database.
 
-_Default is `RS256`._
+### user_provider_custom_retrieve_method
+- **Type**: `string|null`
+- **Default**: `null`
+- **Description**: Specifies a custom method in your user provider to retrieve users based on the decoded token. Requires `load_user_from_database` to be `true`.
 
-The JWT token encryption algorithm used by Keycloak (string).
+### user_provider_credential
+- **Type**: `string`
+- **Default**: `username`
+- **Description**: The field in the `users` table used to identify the user (e.g., `username`, `email`).
 
-✔️ **load_user_from_database**
+### token_principal_attribute
+- **Type**: `string`
+- **Default**: `preferred_username`
+- **Description**: The attribute in the JWT token that contains the user identifier.
 
-_Required. Default is `true`._
+### append_decoded_token
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: If set to `true`, appends the full decoded JWT token to the authenticated user object (`$user->token`).
 
-If you do not have an `users` table you must disable this.
+### allowed_resources
+- **Type**: `string`
+- **Required**: Yes
+- **Description**: A comma-separated list of resources that the JWT token must contain for access.
 
-It fetchs user from database and fill values into authenticated user object. If enabled, it will work together with `user_provider_credential` and `token_principal_attribute`.
+### ignore_resources_validation
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: Disables resource validation, ignoring the allowed_resources configuration.
 
-✔️ **user_provider_custom_retrieve_method**
+### leeway
+- **Type**: `integer`
+- **Default**: `0`
+- **Description**: Adds a leeway (in seconds) to account for clock skew between servers. Useful for resolving timestamp-related token issues.
 
-_Default is `null`._
-_Expects the string name of your custom defined method in your custom user provider._
+### input_key
+- **Type**: `string|null`
+- **Default**: `null`
+- **Description**: If set, the guard will look for a token in this custom request parameter in addition to the Bearer token.
 
-If you have an `users` table and want it to be updated (creating or updating users) based on the token, you can inform a custom method on a custom UserProvider, that will be called instead `retrieveByCredentials` and will receive the complete decoded token as parameter, not just the credentials (as default).
-This will allow you to customize the way you want to interact with your database, before matching and delivering the authenticated user object, having all the information contained in the (valid) access token available. To read more about custom UserProviders, please check [Laravel's documentation about](https://laravel.com/docs/8.x/authentication#adding-custom-user-providers).
-
-If using this feature, the values defined for `user_provider_credential` and `token_principal_attribute` will be ignored. Requires 'load_user_from_database' to be true. Your custom method needs the parameters $token (an object) and $credentials (an associative array).
-
-**user_model**
-
-Default is `username`._
-
-The field from "users" table that contains the user unique identifier (eg. username, email, nickname). This will be confronted against `token_principal_attribute` attribute, while authenticating.
-
-✔️ **user_provider_credential**
-
-_Required.
-Default is `auth.providers.users.model` or `App\Models\User`._
-
-The class name of the User model that will be used to create user object.
-
-✔️ **token_principal_attribute**
-
-_Required.
-Default is `preferred_username`._
-
-The property from JWT token that contains the user identifier.
-This will be confronted against `user_provider_credential` attribute, while authenticating.
-
-✔️ **append_decoded_token**
-
-_Default is `false`._
-
-Appends to the authenticated user the full decoded JWT token (`$user->token`). Useful if you need to know roles, groups and other user info holded by JWT token. Even choosing `false`, you can also get it using `Auth::token()`, see API section.
-
-✔️ **allowed_resources**
-
-_Required_.
-
-Usually you API should handle one _resource_access_. But, if you handle multiples, just use a comma separated list of allowed resources accepted by API. This attribute will be confronted against `resource_access` attribute from JWT token, while authenticating.
-
-✔️ **ignore_resources_validation**
-
-_Default is `false`_.
-
-Disables entirely resources validation. It will **ignore** _allowed_resources_ configuration.
-
-✔️ **leeway**
-
-_Default is `0`_.
-
-You can add a leeway to account for when there is a clock skew times between the signing and verifying servers. If you are facing issues like _"Cannot handle token prior to <DATE>"_ try to set it `60` (seconds).
-
-✔️ **input_key**
-
-_Default is `null`._
-
-By default this package **always** will look at first for a `Bearer` token. Additionally, if this option is enabled, then it will try to get a token from this custom request param.
-
+**Example Usage**:
 ```php
 // keycloak.php
 'input_key' => 'api_token'
-
-// If there is no Bearer token on request it will use `api_token` request param
-GET  $this->get("/foo/secret?api_token=xxxxx")
-POST $this->post("/foo/secret", ["api_token" => "xxxxx"])
 ```
+
+With this configuration, if there is no Bearer token in the request, the guard will use the api_token request parameter:
+•   GET request: `/foo/secret?api_token=xxxxx`
+•   POST request: `/foo/secret` with `["api_token" => "xxxxx"]` in the body.
 
 
 # API
@@ -385,13 +342,55 @@ Priority is given to the claims in passed as an argument, so they will override 
 
 # Contribute
 
-You can run this project on VSCODE with Remote Container. Make sure you will use internal VSCODE terminal (inside running container).
+Contributions are welcome! To contribute to this project, please follow these steps:
 
-```bash
-composer install
-composer test
-composer test:coverage
-```
+1. **Fork the Repository**
+
+   Click the "Fork" button at the top right of the repository page to create your own fork.
+
+2. **Clone Your Fork**
+   ```bash
+   git clone https://github.com/yourusername/your-forked-package.git
+   cd your-forked-package
+   ```
+3.  Create a New Branch
+   
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+4.  Make Your Changes
+  - Implement your feature or bug fix.
+  - Ensure your code follows the project’s coding standards.
+
+5. Run Tests
+
+   ```bash
+   composer install
+   composer test
+   ```
+
+6.  Commit Your Changes
+
+   ```bash
+   git commit -m "Add feature: your feature description"
+   ```
+
+7.  Push to Your Fork
+
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+8.  Create a Pull Request
+ - Navigate to your forked repository on GitHub.
+ - Click the “Compare & pull request” button.
+ - Provide a clear description of your changes and submit the Pull Request.
+
+For more detailed guidelines, please refer to the CONTRIBUTING.md file.
+
+# Credits
+
+This project is a fork of the original work by [Robson Tenório](https://github.com/robsontenorio). Special thanks to Robson for creating and maintaining the original codebase, which served as the foundation for this project. Your contributions and dedication to open-source development are greatly appreciated!
 
 # Contact
 

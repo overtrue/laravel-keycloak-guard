@@ -10,8 +10,6 @@ class Token
     /**
      * Decode a JWT token
      *
-     * @param  string  $token
-     * @param  string  $publicKey
      * @return mixed|null
      */
     public static function decode(?string $token, string $publicKey, int $leeway = 0, string $algorithm = 'RS256')
@@ -25,7 +23,6 @@ class Token
     /**
      * Build a valid public key from a string
      *
-     * @param  string  $key
      * @return mixed
      */
     private static function buildPublicKey(string $key)
@@ -35,9 +32,6 @@ class Token
 
     /**
      * Get the plain public key from a string
-     *
-     * @param  string  $key
-     * @return string
      */
     public static function plainPublicKey(string $key): string
     {
