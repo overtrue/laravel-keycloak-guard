@@ -125,7 +125,7 @@ Below are the configuration options available for Keycloak Guard:
 ### load_user_from_database
 - **Type**: `boolean`
 - **Default**: `true`
-- **Description**: Determines whether to load the user from the database. Set to false if you do not have a `users` table or prefer not to load users from the database. If set to false, the user object will be created from `\Keycloak\User` class.
+- **Description**: Determines whether to load the user from the database. Set to false if you do not have a `users` table or prefer not to load users from the database, the user object will be created from `\Keycloak\User` class.
 
 ### user_provider_custom_retrieve_method
 - **Type**: `string|null`
@@ -174,8 +174,9 @@ Below are the configuration options available for Keycloak Guard:
 ```
 
 With this configuration, if there is no Bearer token in the request, the guard will use the api_token request parameter:
-•   GET request: `/foo/secret?api_token=xxxxx`
-•   POST request: `/foo/secret` with `["api_token" => "xxxxx"]` in the body.
+
+- **GET** request: `/foo/secret?api_token=xxxxx`
+- **POST** request: `/foo/secret` with `["api_token" => "xxxxx"]` in the body.
 
 
 # API
@@ -194,7 +195,9 @@ Simple Keycloak Guard implements `Illuminate\Contracts\Auth\Guard`. So, all Lara
 ## Keycloak Guard methods
 
 #### Token
+
 `token()`
+
 _Returns full decoded JWT token from authenticated user._
 
 ```php
@@ -202,7 +205,9 @@ $token = Auth::token()  // or Auth::user()->token()
 ```
 
 #### Role
+
 `hasRole('some-resource', 'some-role')`
+
 _Check if authenticated user has a role on resource_access_
 
 ```php
@@ -231,6 +236,7 @@ Auth::hasRole('myapp-backend', 'myapp-frontend-role1') // false
 ```
 
 `hasAnyRole('some-resource', ['some-role1', 'some-role2'])`
+
 _Check if the authenticated user has any of the roles in resource_access_
 
 ```php
@@ -248,6 +254,7 @@ Example decoded payload:
 ```
 
 `scopes()`
+
 _Get all user scopes_
 
 ```php
@@ -259,6 +266,7 @@ array:3 [
 ```
 
 `hasScope('some-scope')`
+
 _Check if authenticated user has a scope_
 
 ```php
@@ -267,6 +275,7 @@ Auth::hasScope('scope-d') // false
 ```
 
 `hasAnyScope(['scope-a', 'scope-c'])`
+
 _Check if the authenticated user has any of the scopes_
 
 ```php
@@ -307,8 +316,8 @@ public test_a_protected_route()
       ->assertOk();
 }
 ```
-`$user` argument receives a string identifier or
-an Eloquent model, identifier of which is expected to be the property referred in **user_provider_credential** config.
+
+`$user` argument receives a string identifier or an Eloquent model, identifier of which is expected to be the property referred in **user_provider_credential** config.
 Whatever you pass in the payload will override default claims,
 which includes `aud`, `iat`, `exp`, `iss`, `azp`, `resource_access` and either `sub` or `preferred_username`,
 depending on **token_principal_attribute** config.
@@ -336,7 +345,7 @@ public test_a_protected_route()
 ```
 
 Priority is given to the claims in passed as an argument, so they will override ones in the class property.
-`$user` argument has the highest priority over the claim referred in **token_principal_attribute** config.
+`$user` argument has the highest priority over the claim referred in `token_principal_attribute` config.
 
 # Contribute
 
@@ -344,45 +353,45 @@ Contributions are welcome! To contribute to this project, please follow these st
 
 1. **Fork the Repository**
 
-   Click the "Fork" button at the top right of the repository page to create your own fork.
+2. Click the "Fork" button at the top right of the repository page to create your own fork.
 
 2. **Clone Your Fork**
-   ```bash
-   git clone https://github.com/yourusername/your-forked-package.git
-   cd your-forked-package
-   ```
+```bash
+git clone https://github.com/yourusername/your-forked-package.git
+cd your-forked-package
+```
 3.  Create a New Branch
    
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+```bash
+git checkout -b feature/your-feature-name
+```
 4.  Make Your Changes
-  - Implement your feature or bug fix.
-  - Ensure your code follows the project’s coding standards.
+- Implement your feature or bug fix.
+- Ensure your code follows the project’s coding standards.
 
 5. Run Tests
 
-   ```bash
-   composer install
-   composer test
-   ```
+```bash
+composer install
+composer test
+```
 
 6.  Commit Your Changes
 
-   ```bash
-   git commit -m "Add feature: your feature description"
-   ```
+```bash
+git commit -m "Add feature: your feature description"
+```
 
 7.  Push to Your Fork
 
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+```bash
+git push origin feature/your-feature-name
+```
 
 8.  Create a Pull Request
- - Navigate to your forked repository on GitHub.
- - Click the “Compare & pull request” button.
- - Provide a clear description of your changes and submit the Pull Request.
+- Navigate to your forked repository on GitHub.
+- Click the “Compare & pull request” button.
+- Provide a clear description of your changes and submit the Pull Request.
 
 For more detailed guidelines, please refer to the CONTRIBUTING.md file.
 
