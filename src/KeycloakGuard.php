@@ -5,8 +5,10 @@ namespace KeycloakGuard;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Traits\Macroable;
+use KeycloakGuard\Exceptions\KeycloakGuardException;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
 use KeycloakGuard\Exceptions\TokenException;
 use KeycloakGuard\Exceptions\UserNotFoundException;
@@ -103,10 +105,12 @@ class KeycloakGuard implements Guard
     /**
      * Validate a user's credentials.
      *
-     * @param  array  $credentials
+     * @param array $credentials
+     *
      * @return bool
+     * @throws \Exception
      */
-    public function validate(array $credentials = [])
+    public function validate(array $credentials = []): bool
     {
         $this->validateResources();
 
@@ -123,13 +127,19 @@ class KeycloakGuard implements Guard
                 throw new UserNotFoundException("User not found. Credentials: ".json_encode($credentials));
             }
         } else {
-            $class = $this->config['user_model'] ?? config("auth.providers.users.model") ?? '\App\Models\User';
+            $class = $this->config['user_model'] ?? config("auth.providers.users.model");
+            $keyName = $this->config['token_principal_attribute'] ?? 'id';
 
             if (!class_exists($class)) {
-                throw new \Exception("User model class not found, please check the `user_model` key in the `keycloak.php` configuration file.");
+                throw new KeycloakGuardException("User model class not found: ".$class);
             }
 
-            $user = new $class();
+            if ($class instanceof Model) {
+                $user = new $class();
+                $user->{$user->getKeyName()} = $credentials[$keyName] ?? null;
+            } else {
+                $user = new User($credentials[$keyName] ?? null, $this->decodedToken);
+            }
         }
 
         $this->setUser($user);

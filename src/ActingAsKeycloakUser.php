@@ -3,24 +3,47 @@
 namespace KeycloakGuard;
 
 use Firebase\JWT\JWT;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
 
 trait ActingAsKeycloakUser
 {
     protected array $jwtPayload = [];
 
-    public function actingAsKeycloakUser($user = null, $payload = []): self
+    public function actingAs(Authenticatable|string $user, $guard = null): User|Authenticatable
+    {
+        $user = $this->actingAsKeycloakUser($user);
+
+        parent::actingAs($user, $guard);
+
+        return $user;
+    }
+
+    public function actingAsKeycloakUser(Authenticatable|string|null $user = null, $payload = []): User|Authenticatable
     {
         $principal = Config::get('keycloak.token_principal_attribute');
+
         if (!$user && !isset($payload[$principal]) && !isset($this->jwtPayload[$principal])) {
             Config::set('keycloak.load_user_from_database', false);
+        }
+
+        if (is_string($user)) {
+            $user = $this->newUser($user);
+        } else {
+            $user ??= $this->newUser();
         }
 
         $token = $this->generateKeycloakToken($user, $payload);
 
         $this->withHeader('Authorization', 'Bearer '.$token);
 
-        return $this;
+        return $user;
+    }
+
+    public function newUser(string|null $principal = null, array $token = []): User
+    {
+        return new User($principal ?? Str::uuid()->toString(), (object) $token);
     }
 
     public function generateKeycloakToken($user = null, $payload = []): string

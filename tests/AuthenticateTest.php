@@ -470,7 +470,7 @@ class AuthenticateTest extends TestCase
         $this->assertTrue(config('keycloak.load_user_from_database'));
     }
 
-    public function test_acting_as_keycloak_user_trait_without_user()
+    public function test_acting_as_keycloak_user_trait_with_default_user()
     {
         $this->actingAsKeycloakUser()->json('GET', '/foo/secret');
 
