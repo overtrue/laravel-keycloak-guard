@@ -4,7 +4,9 @@
 <p align="center">
 &nbsp;   <img src="https://img.shields.io/packagist/v/overtrue/laravel-keycloak-guard.svg"  alt=""/>
     <img src="https://img.shields.io/packagist/dt/overtrue/laravel-keycloak-guard.svg"  alt=""/>
-    <img src="https://codecov.io/gh/overtrue/laravel-keycloak-guard/branch/master/graph/badge.svg?token=8ZpDarpss1" alt=""/>
+    <a href="https://codecov.io/github/overtrue/laravel-keycloak-guard" > 
+    <img src="https://codecov.io/github/overtrue/laravel-keycloak-guard/graph/badge.svg?token=89QOBXU4S9"/> 
+    </a>
 </p>
 
 # Simple Keycloak Guard for Laravel
