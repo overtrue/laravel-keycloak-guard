@@ -105,8 +105,6 @@ Any routes within the auth:api middleware group will require a valid JWT token i
 ⚠️ When editing `.env`, ensure all strings **are trimmed** to avoid parsing issues.
 
 ```bash
-# Publish config file
-
 php artisan vendor:publish  --provider="KeycloakGuard\KeycloakGuardServiceProvider"
 ```
 
