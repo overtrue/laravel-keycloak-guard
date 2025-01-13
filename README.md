@@ -125,7 +125,7 @@ Below are the configuration options available for Keycloak Guard:
 ### load_user_from_database
 - **Type**: `boolean`
 - **Default**: `true`
-- **Description**: Determines whether to load the user from the database. Set to false if you do not have a `users` table or prefer not to load users from the database.
+- **Description**: Determines whether to load the user from the database. Set to false if you do not have a `users` table or prefer not to load users from the database. If set to false, the user object will be created from `\Keycloak\User` class.
 
 ### user_provider_custom_retrieve_method
 - **Type**: `string|null`
