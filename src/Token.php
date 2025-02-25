@@ -9,10 +9,8 @@ class Token
 {
     /**
      * Decode a JWT token
-     *
-     * @return mixed|null
      */
-    public static function decode(?string $token, string $publicKey, int $leeway = 0, string $algorithm = 'RS256')
+    public static function decode(?string $token, string $publicKey, int $leeway = 0, string $algorithm = 'RS256'): ?\stdClass
     {
         JWT::$leeway = $leeway;
         $publicKey = self::buildPublicKey($publicKey);
@@ -22,10 +20,8 @@ class Token
 
     /**
      * Build a valid public key from a string
-     *
-     * @return mixed
      */
-    private static function buildPublicKey(string $key)
+    private static function buildPublicKey(string $key): string
     {
         return "-----BEGIN PUBLIC KEY-----\n".wordwrap($key, 64, "\n", true)."\n-----END PUBLIC KEY-----";
     }
@@ -37,8 +33,7 @@ class Token
     {
         $string = str_replace('-----BEGIN PUBLIC KEY-----', '', $key);
         $string = trim(str_replace('-----END PUBLIC KEY-----', '', $string));
-        $string = str_replace('\n', '', $string);
 
-        return $string;
+        return str_replace('\n', '', $string);
     }
 }

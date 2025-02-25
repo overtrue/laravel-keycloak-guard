@@ -11,7 +11,7 @@ trait ActingAsKeycloakUser
 {
     protected array $jwtPayload = [];
 
-    public function actingAs(Authenticatable|string $user, $guard = null)
+    public function actingAs(Authenticatable|string $user, $guard = null): static
     {
         $this->actingAsKeycloakUser($user);
 

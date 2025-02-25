@@ -151,12 +151,12 @@ Below are the configuration options available for Keycloak Guard:
 
 ### allowed_resources
 - **Type**: `string`
-- **Required**: Yes
+- **Required**: No
 - **Description**: A comma-separated list of resources that the JWT token must contain for access.
 
 ### ignore_resources_validation
 - **Type**: `boolean`
-- **Default**: `false`
+- **Default**: `true`
 - **Description**: Disables resource validation, ignoring the allowed_resources configuration.
 
 ### leeway

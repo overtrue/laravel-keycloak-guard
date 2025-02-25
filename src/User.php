@@ -12,6 +12,11 @@ class User implements Authenticatable
         //
     }
 
+    public function id()
+    {
+        return $this->token->sub ?? $this->key;
+    }
+
     protected function isProviderCredentialAttribute(string $key): mixed
     {
         return $key === config('keycloak.user_provider_credential');

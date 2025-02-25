@@ -2,7 +2,9 @@
 
 namespace KeycloakGuard;
 
+use Exception;
 use Illuminate\Auth\GuardHelpers;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
@@ -16,13 +18,13 @@ class KeycloakGuard implements Guard
     use GuardHelpers;
     use Macroable;
 
-    protected $config;
+    protected array $config;
 
     protected $user = null;
 
     protected $provider;
 
-    protected $decodedToken = null;
+    protected ?\stdClass $decodedToken = null;
 
     protected Request $request;
 
@@ -35,10 +37,8 @@ class KeycloakGuard implements Guard
 
     /**
      * Get the token for the current request.
-     *
-     * @return string
      */
-    public function getTokenForRequest()
+    public function getTokenForRequest(): string
     {
         $inputKey = $this->config['input_key'] ?? '';
 
@@ -54,9 +54,9 @@ class KeycloakGuard implements Guard
     /**
      * Get the currently authenticated user.
      *
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
+     * @throws \Exception
      */
-    public function user()
+    public function user(): ?Authenticatable
     {
         if (! is_null($this->user)) {
             return $this->user;
@@ -78,11 +78,11 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Returns full decoded JWT token from athenticated user
+     * Returns full decoded JWT token from authenticated user
      *
      * @return mixed|null
      */
-    public function token()
+    public function token(): ?string
     {
         if (! $this->decodedToken) {
             $this->parseToken($this->getTokenForRequest());
@@ -91,6 +91,9 @@ class KeycloakGuard implements Guard
         return json_encode($this->decodedToken);
     }
 
+    /**
+     * @throws \Exception
+     */
     public function retrieveByToken(string $token)
     {
         $this->parseToken($token);
@@ -106,7 +109,6 @@ class KeycloakGuard implements Guard
 
     /**
      * Validate a user's credentials.
-     *
      *
      * @throws \Exception
      */
@@ -138,10 +140,8 @@ class KeycloakGuard implements Guard
 
     /**
      * Validate if authenticated user has a valid resource
-     *
-     * @return void
      */
-    protected function validateResources()
+    protected function validateResources(): void
     {
         if ($this->config['ignore_resources_validation']) {
             return;
@@ -160,7 +160,7 @@ class KeycloakGuard implements Guard
      *
      * @return $this
      */
-    public function setRequest(Request $request)
+    public function setRequest(Request $request): static
     {
         $this->request = $request;
 
@@ -168,13 +168,9 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Check if authenticated user has a especific role into resource
-     *
-     * @param  string  $resource
-     * @param  string  $role
-     * @return bool
+     * Check if authenticated user has a specific role into resource
      */
-    public function hasRole($resource, $role)
+    public function hasRole(string $resource, string $role): bool
     {
         $tokenResourceAccess = (array) $this->decodedToken->resource_access;
 
@@ -191,13 +187,9 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Check if authenticated user has a any role into resource
-     *
-     * @param  string  $resource
-     * @param  string  $role
-     * @return bool
+     * Check if authenticated user has an any role into resource
      */
-    public function hasAnyRole($resource, array $roles)
+    public function hasAnyRole(string $resource, array $roles): bool
     {
         $tokenResourceAccess = (array) $this->decodedToken->resource_access;
 
@@ -231,7 +223,7 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Check if authenticated user has a especific scope
+     * Check if authenticated user has an especific scope
      */
     public function hasScope(string $scope): bool
     {
@@ -245,9 +237,9 @@ class KeycloakGuard implements Guard
     }
 
     /**
-     * Check if authenticated user has a any scope
+     * Check if authenticated user has an any scope
      */
-    public function hasAnyScope(array $scopes): bool
+    public function hasAnyScope(array|string $scopes): bool
     {
         return count(array_intersect(
             $this->scopes(),
@@ -259,7 +251,7 @@ class KeycloakGuard implements Guard
     {
         try {
             $this->decodedToken = Token::decode($token, $this->config['realm_public_key'], $this->config['leeway'], $this->config['token_encryption_algorithm']);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new TokenException($e->getMessage());
         }
     }
