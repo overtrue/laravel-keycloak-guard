@@ -48,7 +48,16 @@ trait ActingAsKeycloakUser
 
     public function newUser(?string $principal = null, array $token = []): User
     {
-        return new User($principal ?? Str::uuid()->toString(), (object) $token);
+        $principal = $principal ?? Str::uuid()->toString();
+
+        $token = array_merge([
+            'sub' => $principal ?? Str::uuid()->toString(),
+            'email' => 'admin@admin.com',
+            'email_verified' => true,
+            Config::get('token_principal_attribute') => Config::get('keycloak.user_provider_credential'),
+        ]);
+
+        return new User($principal, (object) $token);
     }
 
     public function generateKeycloakToken($user = null, $payload = []): string

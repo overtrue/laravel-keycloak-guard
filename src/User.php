@@ -33,6 +33,10 @@ class User implements Authenticatable
 
     public function __get(string $name): mixed
     {
+        if ($name == 'id') {
+            return $this->id();
+        }
+
         if ($this->isProviderCredentialAttribute($name)) {
             return $this->key;
         }
@@ -50,27 +54,27 @@ class User implements Authenticatable
         return $this->key;
     }
 
-    public function getAuthPasswordName()
+    public function getAuthPasswordName(): string
     {
         return '';
     }
 
-    public function getAuthPassword()
+    public function getAuthPassword(): string
     {
         return '';
     }
 
-    public function getRememberToken()
+    public function getRememberToken(): string
     {
         return '';
     }
 
-    public function setRememberToken($value)
+    public function setRememberToken($value): string
     {
         return '';
     }
 
-    public function getRememberTokenName()
+    public function getRememberTokenName(): string
     {
         return '';
     }
