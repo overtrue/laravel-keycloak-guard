@@ -45,7 +45,7 @@ class KeycloakGuard implements Guard
         $token = $this->request->query($inputKey);
 
         if (empty($token)) {
-            $token = $this->request->bearerToken();
+            $token = $this->request->bearerToken() ?? $this->request->header('X-Access-Token');
         }
 
         return $token;
