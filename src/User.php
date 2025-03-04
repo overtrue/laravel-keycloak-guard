@@ -5,6 +5,11 @@ namespace KeycloakGuard;
 use Illuminate\Contracts\Auth\Authenticatable;
 use stdClass;
 
+/**
+ * @property-read string $id
+ * @property-read string $key
+ * @property-read \stdClass $token
+ */
 class User implements Authenticatable
 {
     public function __construct(public mixed $key, public stdClass $token)

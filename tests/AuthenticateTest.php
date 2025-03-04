@@ -409,7 +409,8 @@ class AuthenticateTest extends TestCase
 
     public function test_acting_as_keycloak_user_trait()
     {
-        $this->actingAsKeycloakUser($this->user)->json('GET', '/foo/secret');
+        $this->actingAsKeycloakUser($this->user);
+        $this->json('GET', '/foo/secret');
 
         $this->assertEquals($this->user->username, Auth::user()->username);
         $token = Token::decode(request()->bearerToken(), config('keycloak.realm_public_key'), config('keycloak.leeway'), config('keycloak.token_encryption_algorithm'));
@@ -422,7 +423,8 @@ class AuthenticateTest extends TestCase
 
     public function test_acting_as_keycloak_user_trait_with_username()
     {
-        $this->actingAsKeycloakUser($this->user->username)->json('GET', '/foo/secret');
+        $this->actingAsKeycloakUser($this->user->username);
+        $this->json('GET', '/foo/secret');
 
         $this->assertEquals($this->user->username, Auth::user()->username);
         $token = Token::decode(request()->bearerToken(), config('keycloak.realm_public_key'), config('keycloak.leeway'), config('keycloak.token_encryption_algorithm'));
@@ -458,7 +460,8 @@ class AuthenticateTest extends TestCase
             $arg = $payload;
         }
 
-        $this->actingAsKeycloakUser(payload: $arg)->json('GET', '/foo/secret');
+        $this->actingAsKeycloakUser(payload: $arg);
+        $this->json('GET', '/foo/secret');
 
         $this->assertEquals('test_username', Auth::user()->username);
         $token = Token::decode(request()->bearerToken(), config('keycloak.realm_public_key'), config('keycloak.leeway'), config('keycloak.token_encryption_algorithm'));
@@ -472,7 +475,8 @@ class AuthenticateTest extends TestCase
     public function test_acting_as_keycloak_user_trait_with_default_user()
     {
         config(['keycloak.load_user_from_database' => false]);
-        $this->actingAsKeycloakUser()->json('GET', '/foo/secret');
+        $this->actingAsKeycloakUser();
+        $this->json('GET', '/foo/secret');
 
         $this->assertTrue(Auth::hasUser());
 

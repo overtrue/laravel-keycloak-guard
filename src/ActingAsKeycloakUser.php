@@ -13,18 +13,18 @@ trait ActingAsKeycloakUser
 
     public function actingAs(Authenticatable|string $user, $guard = null): static
     {
-        $this->actingAsKeycloakUser($user);
-
         if (is_string($user)) {
             $user = $this->newUser($user);
         }
+
+        $this->actingAsKeycloakUser($user);
 
         parent::actingAs($user, $guard);
 
         return $this;
     }
 
-    public function actingAsKeycloakUser(Authenticatable|string|null $user = null, $payload = []): static
+    public function actingAsKeycloakUser(Authenticatable|string|null $user = null, $payload = []): User|Authenticatable
     {
         $principal = Config::get('keycloak.token_principal_attribute');
 
@@ -34,16 +34,15 @@ trait ActingAsKeycloakUser
 
         $user ??= $this->newUser($payload[$principal] ?? $this->jwtPayload[$principal] ?? null);
 
-        if ($user instanceof Authenticatable) {
-            $credential = Config::get('keycloak.user_provider_credential');
-            $user = $user->{$credential} ?? $user->getAuthIdentifier();
+        if (!($user instanceof Authenticatable)) {
+            $user = $this->newUser($user);
         }
 
         $token = $this->generateKeycloakToken($user, $payload);
 
         $this->withHeader('Authorization', 'Bearer '.$token);
 
-        return $this;
+        return $user;
     }
 
     public function newUser(?string $principal = null, array $token = []): User
