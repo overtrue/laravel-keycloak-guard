@@ -4,6 +4,7 @@ namespace KeycloakGuard;
 
 use Firebase\JWT\JWT;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 
@@ -40,6 +41,7 @@ trait ActingAsKeycloakUser
 
         $token = $this->generateKeycloakToken($user, $payload);
 
+        Auth::setUser($user);
         $this->withHeader('Authorization', 'Bearer '.$token);
 
         return $user;
