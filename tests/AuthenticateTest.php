@@ -79,25 +79,6 @@ class AuthenticateTest extends TestCase
         $this->withKeycloakToken()->json('GET', '/foo/secret');
     }
 
-    public function test_appends_token_to_the_user()
-    {
-        config(['keycloak.append_decoded_token' => true]);
-
-        $this->withKeycloakToken()->json('GET', '/foo/secret');
-
-        $this->assertNotNull(Auth::user()->token);
-        $this->assertEquals(json_decode(Auth::token()), Auth::user()->token);
-    }
-
-    public function test_does_not_appends_token_to_the_user()
-    {
-        config(['keycloak.append_decoded_token' => false]);
-
-        $this->withKeycloakToken()->json('GET', '/foo/secret');
-
-        $this->assertNull(Auth::user()->token);
-    }
-
     public function test_does_not_load_user_from_database()
     {
         config(['keycloak.load_user_from_database' => false]);
@@ -497,5 +478,26 @@ class AuthenticateTest extends TestCase
 
         $this->withKeycloakToken()->json('GET', '/foo/secret');
         $this->assertEquals($this->user->username, Auth::user()->username);
+    }
+
+    public function test_it_can_authenticate_from_proxy_user_info()
+    {
+        config(['keycloak.trust_proxy_userinfo' => true]);
+
+        // with base64 encoding
+        $this->withHeader('x-userinfo', base64_encode(json_encode([
+            'preferred_username' => 'johndoe',
+            'resource_access' => ['myapp-backend' => []],
+        ])))->json('GET', '/foo/secret');
+
+        $this->assertEquals($this->user->email, Auth::user()->email);
+
+        // without base64 encoding
+        $this->withHeader('x-userinfo', json_encode([
+            'preferred_username' => 'johndoe',
+            'resource_access' => ['myapp-backend' => []],
+        ]))->json('GET', '/foo/secret');
+
+        $this->assertEquals($this->user->email, Auth::user()->email);
     }
 }

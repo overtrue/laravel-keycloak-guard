@@ -55,9 +55,10 @@ composer require overtrue/laravel-keycloak-guard
 ### Example configuration (.env)
 
 ```.env
+KEYCLOAK_TRUST_PROXY_USERINFO=false         # Trust the `x-userinfo` from the proxy server.
+KEYCLOAK_PROXY_USERINFO_HEADER=x-userinfo   # The header name to look for the user info when `trust_proxy_userinfo` is enabled.
 KEYCLOAK_REALM_PUBLIC_KEY=MIIBIj...         # Get it on Keycloak admin web console.
 KEYCLOAK_LOAD_USER_FROM_DATABASE=false      # You can opt to not load user from database, and use that one provided from JWT token.
-KEYCLOAK_APPEND_DECODED_TOKEN=true          # Append the token info to user object.
 KEYCLOAK_ALLOWED_RESOURCES=my-api           # The JWT token must contain this resource `my-api`.
 KEYCLOAK_LEEWAY=60                          # Optional, but solve some weird issues with timestamps from JWT token.
 ```
@@ -114,14 +115,26 @@ php artisan vendor:publish  --provider="KeycloakGuard\KeycloakGuardServiceProvid
 
 Below are the configuration options available for Keycloak Guard:
 
+### trust_proxy_userinfo
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: Trust the `x-userinfo` from the proxy server. This is useful when you are using a proxy server to authenticate users(for example, integrate with [APISIX](https://apisix.apache.org/zh/docs/apisix/plugins/openid-connect/)).
+
+### proxy_userinfo_header
+- **Type**: `string`
+- **Default**: `x-userinfo`
+- **Description**: The header name to look for the user info when `trust_proxy_userinfo` is enabled.
+
 ### realm_public_key
 - **Type**: `string`
 - **Required**: Yes
+- **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: The public key of your Keycloak realm. Obtain it from the Keycloak admin console under “**Realm Settings**” > “**Keys**” > “**Public Key**”.
 
 ### token_encryption_algorithm
 - **Type**: `string`
 - **Default**: `RS256`
+- **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: The JWT token encryption algorithm used by Keycloak.
 
 ### load_user_from_database
@@ -132,6 +145,7 @@ Below are the configuration options available for Keycloak Guard:
 ### user_provider_custom_retrieve_method
 - **Type**: `string|null`
 - **Default**: `null`
+- **Ignored when**: load_user_from_database is `false`
 - **Description**: Specifies a custom method in your user provider to retrieve users based on the decoded token. Requires `load_user_from_database` to be `true`.
 
 ### user_provider_credential
@@ -144,29 +158,28 @@ Below are the configuration options available for Keycloak Guard:
 - **Default**: `preferred_username`
 - **Description**: The attribute in the JWT token that contains the user identifier.
 
-### append_decoded_token
-- **Type**: `boolean`
-- **Default**: `false`
-- **Description**: If set to `true`, appends the full decoded JWT token to the authenticated user object (`$user->token`).
-
 ### allowed_resources
 - **Type**: `string`
 - **Required**: No
+- **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: A comma-separated list of resources that the JWT token must contain for access.
 
 ### ignore_resources_validation
 - **Type**: `boolean`
 - **Default**: `true`
+- **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: Disables resource validation, ignoring the allowed_resources configuration.
 
 ### leeway
 - **Type**: `integer`
 - **Default**: `0`
+- **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: Adds a leeway (in seconds) to account for clock skew between servers. Useful for resolving timestamp-related token issues.
 
 ### input_key
 - **Type**: `string|null`
 - **Default**: `null`
+- **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: If set, the guard will look for a token in this custom request parameter in addition to the Bearer token.
 
 **Example Usage**:

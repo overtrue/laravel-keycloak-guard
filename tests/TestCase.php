@@ -81,7 +81,6 @@ class TestCase extends Orchestra
             'realm_public_key' => Token::plainPublicKey($this->publicKey),
             'user_provider_credential' => 'username',
             'token_principal_attribute' => 'preferred_username',
-            'append_decoded_token' => false,
             'allowed_resources' => 'myapp-backend',
             'ignore_resources_validation' => false,
         ]);

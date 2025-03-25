@@ -35,7 +35,7 @@ trait ActingAsKeycloakUser
 
         $user ??= $this->newUser($payload[$principal] ?? $this->jwtPayload[$principal] ?? null);
 
-        if (!($user instanceof Authenticatable)) {
+        if (! ($user instanceof Authenticatable)) {
             $user = $this->newUser($user);
         }
 

@@ -3,11 +3,13 @@
 namespace KeycloakGuard;
 
 use Exception;
+use Firebase\JWT\JWT;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Traits\Macroable;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
 use KeycloakGuard\Exceptions\TokenException;
@@ -20,13 +22,13 @@ class KeycloakGuard implements Guard
 
     protected array $config;
 
-    protected $user = null;
-
-    protected $provider;
+    protected Request $request;
 
     protected ?\stdClass $decodedToken = null;
 
-    protected Request $request;
+    private bool $usingProxyUserinfo = false;
+
+    private ?array $proxyUserinfo = null;
 
     public function __construct(UserProvider $provider, Request $request)
     {
@@ -62,16 +64,18 @@ class KeycloakGuard implements Guard
             return $this->user;
         }
 
-        $token = $this->getTokenForRequest();
+        $trustProxyUserinfo = $this->config['trust_proxy_userinfo'] ?? false;
+        $header = $this->config['proxy_userinfo_header'] ?? 'x-userinfo';
 
-        if (! $token) {
-            return null;
-        }
+        if ($trustProxyUserinfo && $this->request->hasHeader($header)) {
+            $this->authenticateWithProxyUserinfo($header);
+        } elseif ($token = $this->getTokenForRequest()) {
+            $this->parseToken($token);
 
-        $this->retrieveByToken($token);
-
-        if ($this->user && $this->config['append_decoded_token']) {
-            $this->user->token = $this->decodedToken;
+            if ($this->decodedToken) {
+                $this->validateResources();
+                $this->user = $this->retrieveFromToken($this->decodedToken);
+            }
         }
 
         return $this->user;
@@ -85,9 +89,7 @@ class KeycloakGuard implements Guard
     public function token(): ?string
     {
         if (! $this->decodedToken) {
-            $token = $this->getTokenForRequest();
-
-            if (! $token) {
+            if (! $token = $this->getTokenForRequest()) {
                 return null;
             }
 
@@ -97,20 +99,68 @@ class KeycloakGuard implements Guard
         return json_encode($this->decodedToken);
     }
 
-    /**
-     * @throws \Exception
-     */
-    public function retrieveByToken(string $token)
+    protected function authenticateWithProxyUserinfo(string $header)
     {
-        $this->parseToken($token);
+        $userinfo = $this->request->header($header);
+        $decodedUserinfo = json_decode(base64_decode($userinfo), true);
 
-        if ($this->decodedToken) {
-            $this->validate([
-                $this->config['user_provider_credential'] => $this->decodedToken->{$this->config['token_principal_attribute']},
-            ]);
+        // try to decode userinfo without base64 encoding
+        if (! $decodedUserinfo) {
+            $decodedUserinfo = json_decode($userinfo, true);
         }
 
-        return $this->user;
+        if (! $decodedUserinfo) {
+            Log::error("Failed to parse userinfo from proxy header: $header");
+
+            return null;
+        }
+
+        $this->usingProxyUserinfo = true;
+        $this->proxyUserinfo = $decodedUserinfo;
+        $this->decodedToken = json_decode(json_encode($decodedUserinfo));
+        $this->user = $this->retrieveFromToken($this->decodedToken);
+    }
+
+    public function retrieveFromToken(\stdClass $decodedToken)
+    {
+        $credentials = $this->mapTokenToCredentials($decodedToken);
+
+        if ($this->config['load_user_from_database'] ?? false) {
+            return $this->retrieveFromDatabase($credentials, $decodedToken);
+        }
+
+        return $this->createUserFromToken($credentials, $decodedToken);
+    }
+
+    protected function retrieveFromDatabase(array $credentials, \stdClass $decodedToken)
+    {
+        $methodOnProvider = $this->config['user_provider_custom_retrieve_method'] ?? null;
+
+        if ($methodOnProvider && method_exists($this->provider, $methodOnProvider)) {
+            $user = $this->provider->{$methodOnProvider}($decodedToken, $credentials);
+        } else {
+            $user = $this->provider->retrieveByCredentials($credentials);
+        }
+
+        if (! $user) {
+            throw new UserNotFoundException('User not found. Credentials: '.json_encode($credentials));
+        }
+
+        return $user;
+    }
+
+    protected function createUserFromToken(array $credentials, \stdClass $decodedToken): User
+    {
+        $keyName = $this->config['user_provider_credential'] ?? 'sub';
+
+        return new User($credentials[$keyName] ?? null, $decodedToken);
+    }
+
+    protected function mapTokenToCredentials(\stdClass $decodedToken): array
+    {
+        return [
+            $this->config['user_provider_credential'] => $decodedToken->{$this->config['token_principal_attribute']},
+        ];
     }
 
     /**
@@ -122,24 +172,9 @@ class KeycloakGuard implements Guard
     {
         $this->validateResources();
 
-        if ($this->config['load_user_from_database']) {
-            $methodOnProvider = $this->config['user_provider_custom_retrieve_method'] ?? null;
-
-            if ($methodOnProvider) {
-                $user = $this->provider->{$methodOnProvider}($this->decodedToken, $credentials);
-            } else {
-                $user = $this->provider->retrieveByCredentials($credentials);
-            }
-
-            if (! $user) {
-                throw new UserNotFoundException('User not found. Credentials: '.json_encode($credentials));
-            }
-        } else {
-            $keyName = $this->config['user_provider_credential'];
-            $user = new User($credentials[$keyName] ?? null, $this->decodedToken);
+        if (! $this->user && ! empty($credentials)) {
+            $this->user = $this->retrieveFromToken($this->decodedToken);
         }
-
-        $this->setUser($user);
 
         return true;
     }

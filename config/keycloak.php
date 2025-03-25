@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'trust_proxy_userinfo' => false,
+
+    'proxy_userinfo_header' => 'x-userinfo',
+
     'realm_public_key' => env('KEYCLOAK_REALM_PUBLIC_KEY', null),
 
     'token_encryption_algorithm' => env('KEYCLOAK_TOKEN_ENCRYPTION_ALGORITHM', 'RS256'),
@@ -12,8 +16,6 @@ return [
     'user_provider_credential' => env('KEYCLOAK_USER_PROVIDER_CREDENTIAL', 'username'),
 
     'token_principal_attribute' => env('KEYCLOAK_TOKEN_PRINCIPAL_ATTRIBUTE', 'preferred_username'),
-
-    'append_decoded_token' => env('KEYCLOAK_APPEND_DECODED_TOKEN', false),
 
     'allowed_resources' => env('KEYCLOAK_ALLOWED_RESOURCES', null),
 
