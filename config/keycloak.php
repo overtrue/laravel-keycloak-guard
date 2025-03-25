@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'trust_proxy_userinfo' => env('TRUST_PROXY_USERINFO', false),
+    'trust_proxy_userinfo' => env('KEYCLOAK_TRUST_PROXY_USERINFO', false),
 
-    'proxy_userinfo_header' => env('TRUST_PROXY_USERINFO_HEADER', 'x-userinfo'),
+    'proxy_userinfo_header' => env('KEYCLOAK_TRUST_PROXY_USERINFO_HEADER', 'x-userinfo'),
 
     'realm_public_key' => env('KEYCLOAK_REALM_PUBLIC_KEY', null),
 
