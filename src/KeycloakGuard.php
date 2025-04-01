@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Traits\Macroable;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
@@ -97,6 +98,77 @@ class KeycloakGuard implements Guard
         }
 
         return json_encode($this->decodedToken);
+    }
+
+    protected function getRealmPublicKey(): ?string
+    {
+        // try to get public key from config
+        if ($this->config['realm_public_key']) {
+            return $this->config['realm_public_key'];
+        }
+
+        // try to get public key from Keycloak server
+        if (empty($this->config['keycloak_base_url']) || empty($this->config['keycloak_realm'])) {
+            Log::error('Keycloak base URL or realm is not configured.');
+
+            return null;
+        }
+
+        $url = sprintf('%s/realms/%s/protocol/openid-connect/certs', rtrim($this->config['keycloak_base_url'], '/'), trim($this->config['keycloak_realm']));
+        $response = Http::get($url);
+
+        if ($response->failed()) {
+            Log::error('Failed to get public key from Keycloak server: '.$url);
+
+            return null;
+        }
+
+        $keys = $response->collect('keys', []);
+
+        if ($keys->isEmpty()) {
+            Log::error('No keys found in Keycloak response: '.$url);
+
+            return null;
+        }
+
+        // check if the response contains the keys, find the first `use:sig` key with `alg` and `x5c`
+        $sigKey = $keys->first(function ($key) {
+            return isset($key['use']) && $key['use'] === 'sig' && ! empty($key['x5c'][0])
+                    && $key['alg'] === $this->config['token_encryption_algorithm'];
+        })['x5c'][0] ?? null;
+
+        if (! $sigKey) {
+            Log::error('No valid certificate found in Keycloak response: '.$url);
+
+            return null;
+        }
+
+        // create the certificate PEM format
+        $certPem = '-----BEGIN CERTIFICATE-----'."\n".$sigKey."\n-----END CERTIFICATE-----";
+        $cert = openssl_x509_read($certPem);
+
+        if ($cert) {
+            // get public key from certificate
+            $publicKeyResource = openssl_get_publickey($cert);
+
+            if ($publicKeyResource === false) {
+                Log::error('Failed to get public key from certificate: '.$certPem);
+
+                return null;
+            }
+
+            $key = openssl_pkey_get_details($publicKeyResource)['key'] ?? null;
+
+            // replace header and footer
+            $key = str_replace(['-----BEGIN PUBLIC KEY-----', '-----END PUBLIC KEY-----'], '', $key);
+
+            // remove new lines
+            return str_replace(["\n", "\r"], '', $key);
+        } else {
+            Log::error('Failed to read public key from Keycloak server: '.$url);
+        }
+
+        return null;
     }
 
     protected function authenticateWithProxyUserinfo(string $header)
@@ -291,9 +363,15 @@ class KeycloakGuard implements Guard
     protected function parseToken(string $token): void
     {
         try {
-            $this->decodedToken = Token::decode($token, $this->config['realm_public_key'], $this->config['leeway'], $this->config['token_encryption_algorithm']);
+            $publicKey = $this->getRealmPublicKey();
+
+            if (empty($publicKey)) {
+                throw new TokenException('Public key not found, please check your Keycloak configuration.');
+            }
+
+            $this->decodedToken = Token::decode($token, $publicKey, $this->config['leeway'], $this->config['token_encryption_algorithm']);
         } catch (Exception $e) {
-            throw new TokenException($e->getMessage());
+            throw new TokenException('Error decoding token: '.$e->getMessage().' Please ensure the token is valid and not expired.', 0, $e);
         }
     }
 }

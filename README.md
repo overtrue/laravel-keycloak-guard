@@ -4,8 +4,8 @@
 <p align="center">
 &nbsp;   <img src="https://img.shields.io/packagist/v/overtrue/laravel-keycloak-guard.svg"  alt=""/>
     <img src="https://img.shields.io/packagist/dt/overtrue/laravel-keycloak-guard.svg"  alt=""/>
-    <a href="https://codecov.io/github/overtrue/laravel-keycloak-guard" > 
-    <img src="https://codecov.io/github/overtrue/laravel-keycloak-guard/graph/badge.svg?token=89QOBXU4S9"/> 
+    <a href="https://codecov.io/github/overtrue/laravel-keycloak-guard" >
+    <img src="https://codecov.io/github/overtrue/laravel-keycloak-guard/graph/badge.svg?token=89QOBXU4S9"/>
     </a>
 </p>
 
@@ -63,7 +63,6 @@ KEYCLOAK_ALLOWED_RESOURCES=my-api           # The JWT token must contain this re
 KEYCLOAK_LEEWAY=60                          # Optional, but solve some weird issues with timestamps from JWT token.
 ```
 
-
 ### Auth Guard
 
 Update your `config/auth.php` to use the `keycloak` driver for API authentication.
@@ -116,73 +115,99 @@ php artisan vendor:publish  --provider="KeycloakGuard\KeycloakGuardServiceProvid
 Below are the configuration options available for Keycloak Guard:
 
 ### trust_proxy_userinfo
+
 - **Type**: `boolean`
 - **Default**: `false`
 - **Description**: Trust the `x-userinfo` from the proxy server. This is useful when you are using a proxy server to authenticate users(for example, integrate with [APISIX](https://apisix.apache.org/zh/docs/apisix/plugins/openid-connect/)).
 
 ### proxy_userinfo_header
+
 - **Type**: `string`
 - **Default**: `x-userinfo`
 - **Description**: The header name to look for the user info when `trust_proxy_userinfo` is enabled.
 
-### realm_public_key
+### keycloak_base_url
+
 - **Type**: `string`
-- **Required**: Yes
+- **Required**: No (required without `realm_public_key`)
+- **Default**: null
+- **Description**: The base URL of your Keycloak server. This is the URL where your Keycloak instance is hosted.
+
+### keycloak_realm
+
+- **Type**: `string`
+- **Required**: No (required without `realm_public_key`)
+- **Description**: The name of the Keycloak realm you are using. This is the realm where your users and clients are defined.
+
+### realm_public_key
+
+- **Type**: `string`
+- **Required**: No (required without `keycloak_base_url` + `keycloak_realm`)
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: The public key of your Keycloak realm. Obtain it from the Keycloak admin console under “**Realm Settings**” > “**Keys**” > “**Public Key**”.
 
 ### token_encryption_algorithm
+
 - **Type**: `string`
 - **Default**: `RS256`
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: The JWT token encryption algorithm used by Keycloak.
 
 ### load_user_from_database
+
 - **Type**: `boolean`
 - **Default**: `true`
 - **Description**: Determines whether to load the user from the database. Set to false if you do not have a `users` table or prefer not to load users from the database, the user object will be created from `\Keycloak\User` class.
 
 ### user_provider_custom_retrieve_method
+
 - **Type**: `string|null`
 - **Default**: `null`
 - **Ignored when**: load_user_from_database is `false`
 - **Description**: Specifies a custom method in your user provider to retrieve users based on the decoded token. Requires `load_user_from_database` to be `true`.
 
 ### user_provider_credential
+
 - **Type**: `string`
 - **Default**: `username`
 - **Description**: The field in the `users` table used to identify the user (e.g., `username`, `email`).
 
 ### token_principal_attribute
+
 - **Type**: `string`
 - **Default**: `preferred_username`
 - **Description**: The attribute in the JWT token that contains the user identifier.
 
 ### allowed_resources
+
 - **Type**: `string`
 - **Required**: No
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: A comma-separated list of resources that the JWT token must contain for access.
 
 ### ignore_resources_validation
+
 - **Type**: `boolean`
 - **Default**: `true`
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: Disables resource validation, ignoring the allowed_resources configuration.
 
 ### leeway
+
 - **Type**: `integer`
 - **Default**: `0`
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: Adds a leeway (in seconds) to account for clock skew between servers. Useful for resolving timestamp-related token issues.
 
 ### input_key
+
 - **Type**: `string|null`
 - **Default**: `null`
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: If set, the guard will look for a token in this custom request parameter in addition to the Bearer token.
 
 **Example Usage**:
+
 ```php
 // keycloak.php
 'input_key' => 'api_token'
@@ -192,7 +217,6 @@ With this configuration, if there is no Bearer token in the request, the guard w
 
 - **GET** request: `/foo/secret?api_token=xxxxx`
 - **POST** request: `/foo/secret` with `["api_token" => "xxxxx"]` in the body.
-
 
 # API
 
@@ -261,7 +285,9 @@ Auth::hasAnyRole('myapp-backend', ['myapp-frontend-role1', 'myapp-frontend-role2
 ```
 
 #### Scope
+
 Example decoded payload:
+
 ```json
 {
     "scope": "scope-a scope-b scope-c",
@@ -371,16 +397,20 @@ Contributions are welcome! To contribute to this project, please follow these st
 2. Click the "Fork" button at the top right of the repository page to create your own fork.
 
 2. **Clone Your Fork**
+
 ```bash
 git clone https://github.com/yourusername/your-forked-package.git
 cd your-forked-package
 ```
-3.  Create a New Branch
-   
+
+3. Create a New Branch
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
-4.  Make Your Changes
+
+4. Make Your Changes
+
 - Implement your feature or bug fix.
 - Ensure your code follows the project’s coding standards.
 
@@ -391,19 +421,20 @@ composer install
 composer test
 ```
 
-6.  Commit Your Changes
+6. Commit Your Changes
 
 ```bash
 git commit -m "Add feature: your feature description"
 ```
 
-7.  Push to Your Fork
+7. Push to Your Fork
 
 ```bash
 git push origin feature/your-feature-name
 ```
 
-8.  Create a Pull Request
+8. Create a Pull Request
+
 - Navigate to your forked repository on GitHub.
 - Click the “Compare & pull request” button.
 - Provide a clear description of your changes and submit the Pull Request.

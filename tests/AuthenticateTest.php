@@ -5,6 +5,7 @@ namespace KeycloakGuard\Tests;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Hashing\BcryptHasher;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use KeycloakGuard\ActingAsKeycloakUser;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
 use KeycloakGuard\Exceptions\TokenException;
@@ -499,5 +500,55 @@ class AuthenticateTest extends TestCase
         ]))->json('GET', '/foo/secret');
 
         $this->assertEquals($this->user->email, Auth::user()->email);
+    }
+
+    public function test_it_can_get_public_key_from_server()
+    {
+
+        config(['keycloak.realm_public_key' => null]);
+        config(['keycloak.keycloak_base_url' => 'https://keycloak.example.com']);
+        config(['keycloak.keycloak_realm' => 'tencent-design']);
+        config(['keycloak.ignore_resources_validation' => true]);
+        config(['keycloak.load_user_from_database' => false]);
+
+        $response = '{
+            "keys": [
+                {
+                "kid": "_cqQH2gok4ObvrRnLKPbZBGyY2o1XoUlvmfaug5tug8",
+                "kty": "RSA",
+                "alg": "RSA-OAEP",
+                "use": "enc",
+                "x5c": [
+                    "MIIClzCCAX8CBgGVNnRp4zANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARzYWFzMB4XDTI1MDIyNDA1MzQxM1oXDTM1MDIyNDA1MzU1M1owDzENMAsGA1UEAwwEc2FhczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALA6I3PmKSwb6UvK6IYK6JBUZ/pVD6l7aypFHbXqE9NUUAu583poXCfe7PjdAyE529+fLD1antLFWmdIYCB5KgJyxmLAu6brHv2/XhJA5i0cNQuJeIXVlf/+/herfwIryRIDV6ie4hGZHfIkeLzja53Daj1+xCQhLWsqqtvvGRwWw1i/llAgtjCeGKv+N0S/rdLfQChVm4eTeRDHcgX57YjI3B7xpzYcTfeFdfFJXFVsPE+BWGrjzQoDMqsZaq3saRqvTCPD6iAvM2e28RbpQoAGIaWUW8U0vdcZmhcBcOrIfG/DMb5upw/1/Nk33Z8DsxMzvRE0iHb0ZyZCOY/axUECAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAZ+iBNY32NbzTZvG+rIdnV0MyMqNnAu3mzQpQvGzh4YLpNmzALd4f70alvsff0TvnvtdBR4UxzAp4AL50MDeId0vdvusAu1wdhMGI3jKuBmTA11zHoKv5rUZqUdObUqQww2FDRworcWXqOXYTxBaumUN9D0mystypJ93TTHE5cd6GpQtbfSj+3gdDqAXcJnx+eP0+n084qUx2A0W9FzD7vsmoOcCdp5ZwgfyNa60MhBOWcZRpdrwkQQFzu6ssRUNfHiQmncIKGnVmoaX7jxJ1AZgW9kcKCmFvG4v19NWufDihqKNVfomOAgjsJw+5zdwj+AwZrFP+L4+75UtU/4vubw=="
+                ],
+                "x5t": "C_pitNekDkg2iRVJ1c8hcjYZ5MA",
+                "x5t#S256": "QINLCxUo0a0n0w75VAKQ5lAX5ZpFHPTJci-lu_QEdLI",
+                "n": "sDojc-YpLBvpS8rohgrokFRn-lUPqXtrKkUdteoT01RQC7nzemhcJ97s-N0DITnb358sPVqe0sVaZ0hgIHkqAnLGYsC7puse_b9eEkDmLRw1C4l4hdWV__7-F6t_AivJEgNXqJ7iEZkd8iR4vONrncNqPX7EJCEtayqq2-8ZHBbDWL-WUCC2MJ4Yq_43RL-t0t9AKFWbh5N5EMdyBfntiMjcHvGnNhxN94V18UlcVWw8T4FYauPNCgMyqxlqrexpGq9MI8PqIC8zZ7bxFulCgAYhpZRbxTS91xmaFwFw6sh8b8Mxvm6nD_X82TfdnwOzEzO9ETSIdvRnJkI5j9rFQQ",
+                "e": "AQAB"
+                },
+                {
+                "kid": "xbR4JTfmbvtPHPkkKhnBSowzS3GHQjiZ_gsUsgr4-Bc",
+                "kty": "RSA",
+                "alg": "RS256",
+                "use": "sig",
+                "x5c": [
+                    "MIIClzCCAX8CBgGVNnRn5TANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARzYWFzMB4XDTI1MDIyNDA1MzQxM1oXDTM1MDIyNDA1MzU1M1owDzENMAsGA1UEAwwEc2FhczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJcCuSJm1lxFuA7XQXUP09BuGrnvuQJttIkdZwSccwOJJQlIWmvImISlYm/xZI4r1clwNnH6n5gqssnN3YIi1m/G2jIlyFwuAAp6HNpDr2cu/3FmW1fQ3k8Qy7C9tGt9TzHhJHoelEkt5nK7rigOBKJEqd7WwIlzGjEoIqSD5w6ScdaOIXoEoGjbHcB+hW3wVpDuFZ9N8x1AZ31wZyLO5lJIuFODv0MZUQXoNOOxG5wnzlFWajsas70i+P0On7lypb7xRPDtAEcvUAaMPyTjXQLZIGT1ZM5DGDNdJ8QkNPl4z4ch74Qpkh7BQhPZER9A9scjw1v9NzSHVX4tPvgVO08CAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAD3y6ybSIfAEDtig0bOiQFaFbndMQLYf761QabQ2I7bxTxmJb0AjpdEaM69+JDFhMmMvoevd9hS2CtR+tMaUv671vupdLflxUK3/ugvqAYIBCk/UWGrSmsJAy9rGIjqPPkSqOCPmiI8w9Dsqr8XYqexEmUfDJQmcCIsSbtBBd4aIWzZzjsxSK30RjC3be+VqEaU7Suj0zw5n1Eiax2fmbFqAqpZxuRbbiBxr0N/0G31KKCFD+MI3Ipt4v8ZnkzNOBTbIN5YHwEGc1HwiPwDDYsoS5z2K1YikXdBqZ3kgfLrGTOhJREQ27n7N5ZeXwpfjr/arrsFGn5wfgfxvYm0wZCQ=="
+                ],
+                "x5t": "HxWnrsU_VWyQ4U6x83wV-RgsEpo",
+                "x5t#S256": "RBikIbGpXFHIx4COox-trrJdrH3Dw9UeMeSVgBq1I1w",
+                "n": "lwK5ImbWXEW4DtdBdQ_T0G4aue-5Am20iR1nBJxzA4klCUhaa8iYhKVib_FkjivVyXA2cfqfmCqyyc3dgiLWb8baMiXIXC4ACnoc2kOvZy7_cWZbV9DeTxDLsL20a31PMeEkeh6USS3mcruuKA4EokSp3tbAiXMaMSgipIPnDpJx1o4hegSgaNsdwH6FbfBWkO4Vn03zHUBnfXBnIs7mUki4U4O_QxlRBeg047EbnCfOUVZqOxqzvSL4_Q6fuXKlvvFE8O0ARy9QBow_JONdAtkgZPVkzkMYM10nxCQ0-XjPhyHvhCmSHsFCE9kRH0D2xyPDW_03NIdVfi0--BU7Tw",
+                "e": "AQAB"
+                }
+            ]
+            }';
+
+        Http::fake([
+            'https://keycloak.example.com/realms/tencent-design/protocol/openid-connect/certs' => Http::sequence()->push($response),
+        ]);
+
+        $token = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ4YlI0SlRmbWJ2dFBIUGtrS2huQlNvd3pTM0dIUWppWl9nc1VzZ3I0LUJjIn0.eyJleHAiOjE3NDQ4MTQyNDUsImlhdCI6MTc0MzUxODI0NSwianRpIjoiYjQ5ZjlmNDgtMjc2Mi00MDgwLWEwYjktZDNhMDZkOTNhMzM2IiwiaXNzIjoiaHR0cHM6Ly9kLnRlc3RzaXRlLndvYS5jb20vYXV0aC9yZWFsbXMvdGVuY2VudC1kZXNpZ24iLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiMTVmMzFlNjAtMWQ5Ny00ZGFiLWE4ZWEtNTYzNjVkNjYzNTVmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoicmVzdGZ1bC1hcGkiLCJzaWQiOiI2N2YyNGU4NS0zMWI0LTRjYWQtYjY4NS01ZjMxN2FjOWE5ZWQiLCJhY3IiOiIxIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImRlZmF1bHQtcm9sZXMtc2FhcyIsIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsIm5hbWUiOiJhZG1pbiBhZG1pbiIsInByZWZlcnJlZF91c2VybmFtZSI6ImFkbWluIiwiZ2l2ZW5fbmFtZSI6ImFkbWluIiwiZmFtaWx5X25hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AYWRtaW4uY29tIn0.k0ADNI9IZjZYkDT4SW8VgVjxTTc-r-QRNKKu_W0znChpr4NwwnQB3YRc2wQy1rFeshWW0toyK51DEuQOYUgMUnwe0fj1VvT2E9i4wKcnkSqWNj6TLCkzVxVcjIL9zRHj9wiuT7Au3zt4BJvQCuaKihdvD548x3OB1EqAzx4towoiMKQaU-Enx_24R60lUEzrB66oKVTM-LUbs_PBt2E72jk5v9XnNMF0l5J3biVTh41Mg7a2Xl_0I1pic3RI4XMaweDrNactQAJ1QecUsYAD0m5ysQ8KBVKmLhw4zcNa3Ev75JU2oDGVz05Y30Xzw9pqtjXs_EFK5pEhI0am7tN1jA';
+
+        $this->withToken($token)->json('GET', '/foo/secret');
+        $this->assertEquals('admin', Auth::user()->username);
     }
 }
