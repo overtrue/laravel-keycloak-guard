@@ -55,7 +55,7 @@ trait ActingAsKeycloakUser
             'sub' => $principal ?? Str::uuid()->toString(),
             'email' => 'admin@admin.com',
             'email_verified' => true,
-            Config::get('token_principal_attribute') => Config::get('keycloak.user_provider_credential'),
+            Config::get('keycloak.token_principal_attribute') => Config::get('keycloak.user_provider_credential'),
         ]);
 
         return new User($principal, (object) $token);
