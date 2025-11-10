@@ -2,6 +2,10 @@
 
 namespace KeycloakGuard\Tests;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Hashing\BcryptHasher;
 use Illuminate\Support\Facades\Auth;
@@ -510,6 +514,7 @@ class AuthenticateTest extends TestCase
         config(['keycloak.keycloak_realm' => 'tencent-design']);
         config(['keycloak.ignore_resources_validation' => true]);
         config(['keycloak.load_user_from_database' => false]);
+        config(['keycloak.leeway' => 100000000]); // to avoid expire time validation
 
         $response = '{
             "keys": [
@@ -541,10 +546,15 @@ class AuthenticateTest extends TestCase
                 }
             ]
             }';
-
-        Http::fake([
-            'https://keycloak.example.com/realms/tencent-design/protocol/openid-connect/certs' => Http::sequence()->push($response),
+        
+        // Prepare a mock handler for Guzzle
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/json'], $response),
         ]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+        
+        // Bind the mocked client into the service container
+        $this->app->instance(Client::class, $client);
 
         $token = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ4YlI0SlRmbWJ2dFBIUGtrS2huQlNvd3pTM0dIUWppWl9nc1VzZ3I0LUJjIn0.eyJleHAiOjE3NDQ4MTQyNDUsImlhdCI6MTc0MzUxODI0NSwianRpIjoiYjQ5ZjlmNDgtMjc2Mi00MDgwLWEwYjktZDNhMDZkOTNhMzM2IiwiaXNzIjoiaHR0cHM6Ly9kLnRlc3RzaXRlLndvYS5jb20vYXV0aC9yZWFsbXMvdGVuY2VudC1kZXNpZ24iLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiMTVmMzFlNjAtMWQ5Ny00ZGFiLWE4ZWEtNTYzNjVkNjYzNTVmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoicmVzdGZ1bC1hcGkiLCJzaWQiOiI2N2YyNGU4NS0zMWI0LTRjYWQtYjY4NS01ZjMxN2FjOWE5ZWQiLCJhY3IiOiIxIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImRlZmF1bHQtcm9sZXMtc2FhcyIsIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsIm5hbWUiOiJhZG1pbiBhZG1pbiIsInByZWZlcnJlZF91c2VybmFtZSI6ImFkbWluIiwiZ2l2ZW5fbmFtZSI6ImFkbWluIiwiZmFtaWx5X25hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AYWRtaW4uY29tIn0.k0ADNI9IZjZYkDT4SW8VgVjxTTc-r-QRNKKu_W0znChpr4NwwnQB3YRc2wQy1rFeshWW0toyK51DEuQOYUgMUnwe0fj1VvT2E9i4wKcnkSqWNj6TLCkzVxVcjIL9zRHj9wiuT7Au3zt4BJvQCuaKihdvD548x3OB1EqAzx4towoiMKQaU-Enx_24R60lUEzrB66oKVTM-LUbs_PBt2E72jk5v9XnNMF0l5J3biVTh41Mg7a2Xl_0I1pic3RI4XMaweDrNactQAJ1QecUsYAD0m5ysQ8KBVKmLhw4zcNa3Ev75JU2oDGVz05Y30Xzw9pqtjXs_EFK5pEhI0am7tN1jA';
 

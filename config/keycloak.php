@@ -27,5 +27,8 @@ return [
 
     'leeway' => env('KEYCLOAK_LEEWAY', 0),
 
-    'input_key' => env('KEYCLOAK_TOKEN_INPUT_KEY', null)
+    'input_key' => env('KEYCLOAK_TOKEN_INPUT_KEY', null),
+
+    // TTL in seconds to cache JWKS fetched from Keycloak when realm_public_key is not set
+    'jwks_cache_ttl' => env('KEYCLOAK_JWKS_CACHE_TTL', 3600),
 ];

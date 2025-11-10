@@ -2,6 +2,7 @@
 
 namespace KeycloakGuard;
 
+use Firebase\JWT\CachedKeySet;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
@@ -10,12 +11,22 @@ class Token
     /**
      * Decode a JWT token
      */
-    public static function decode(?string $token, string $publicKey, int $leeway = 0, string $algorithm = 'RS256'): ?\stdClass
+    public static function decode(?string $token, CachedKeySet|string $publicKeyOrKeySet, int $leeway = 0, string $algorithm = 'RS256'): ?\stdClass
     {
         JWT::$leeway = $leeway;
-        $publicKey = self::buildPublicKey($publicKey);
 
-        return $token ? JWT::decode($token, new Key($publicKey, $algorithm)) : null;
+        if (! $token) {
+            return null;
+        }
+
+        // If a string public key is provided, build it and decode using Key
+        if (is_string($publicKeyOrKeySet)) {
+            $publicKey = self::buildPublicKey($publicKeyOrKeySet);
+            return JWT::decode($token, new Key($publicKey, $algorithm));
+        }
+
+        // Otherwise assume it's a CachedKeySet and pass through to JWT::decode
+        return JWT::decode($token, $publicKeyOrKeySet);
     }
 
     /**
