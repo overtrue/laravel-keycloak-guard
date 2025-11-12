@@ -3,7 +3,9 @@
 namespace KeycloakGuard;
 
 use Exception;
-use Firebase\JWT\JWT;
+use Firebase\JWT\CachedKeySet;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
@@ -100,10 +102,10 @@ class KeycloakGuard implements Guard
         return json_encode($this->decodedToken);
     }
 
-    protected function getRealmPublicKey(): ?string
+    protected function getRealmPublicKey(): string|CachedKeySet|null
     {
         // try to get public key from config
-        if ($this->config['realm_public_key']) {
+        if (!empty($this->config['realm_public_key'])) {
             return $this->config['realm_public_key'];
         }
 
@@ -114,61 +116,21 @@ class KeycloakGuard implements Guard
             return null;
         }
 
-        $url = sprintf('%s/realms/%s/protocol/openid-connect/certs', rtrim($this->config['keycloak_base_url'], '/'), trim($this->config['keycloak_realm']));
-        $response = Http::get($url);
-
-        if ($response->failed()) {
-            Log::error('Failed to get public key from Keycloak server: '.$url);
-
-            return null;
-        }
-
-        $keys = $response->collect('keys', []);
-
-        if ($keys->isEmpty()) {
-            Log::error('No keys found in Keycloak response: '.$url);
-
-            return null;
-        }
-
-        // check if the response contains the keys, find the first `use:sig` key with `alg` and `x5c`
-        $sigKey = $keys->first(function ($key) {
-            return isset($key['use']) && $key['use'] === 'sig' && ! empty($key['x5c'][0])
-                    && $key['alg'] === $this->config['token_encryption_algorithm'];
-        })['x5c'][0] ?? null;
-
-        if (! $sigKey) {
-            Log::error('No valid certificate found in Keycloak response: '.$url);
-
-            return null;
-        }
-
-        // create the certificate PEM format
-        $certPem = '-----BEGIN CERTIFICATE-----'."\n".$sigKey."\n-----END CERTIFICATE-----";
-        $cert = openssl_x509_read($certPem);
-
-        if ($cert) {
-            // get public key from certificate
-            $publicKeyResource = openssl_get_publickey($cert);
-
-            if ($publicKeyResource === false) {
-                Log::error('Failed to get public key from certificate: '.$certPem);
-
-                return null;
-            }
-
-            $key = openssl_pkey_get_details($publicKeyResource)['key'] ?? null;
-
-            // replace header and footer
-            $key = str_replace(['-----BEGIN PUBLIC KEY-----', '-----END PUBLIC KEY-----'], '', $key);
-
-            // remove new lines
-            return str_replace(["\n", "\r"], '', $key);
-        } else {
-            Log::error('Failed to read public key from Keycloak server: '.$url);
-        }
-
-        return null;
+        $jwksUri = sprintf(
+            '%s/realms/%s/protocol/openid-connect/certs',
+            rtrim($this->config['keycloak_base_url'], '/'),
+            trim($this->config['keycloak_realm'])
+        );
+        
+        return new CachedKeySet(
+            $jwksUri,
+            httpClient: app(Client::class) ?? new Client(),
+            httpFactory: new HttpFactory(),
+            cache: app('cache.psr6'),
+            expiresAfter: isset($this->config['jwks_cache_ttl']) ? (int) $this->config['jwks_cache_ttl'] : null,
+            rateLimit: true,
+            defaultAlg: $this->config['token_encryption_algorithm'] ?? null
+        );
     }
 
     protected function authenticateWithProxyUserinfo(string $header)

@@ -206,6 +206,13 @@ Below are the configuration options available for Keycloak Guard:
 - **Ignored when**: `trust_proxy_userinfo` is `true`
 - **Description**: If set, the guard will look for a token in this custom request parameter in addition to the Bearer token.
 
+### jwks_cache_ttl
+
+- **Type**: `int|null`
+- **Default**: `3600` (1 hour)
+- **Ignored when**: `realm_public_key` is set
+- **Description**: number of seconds to set the JWKS cache to expire
+
 **Example Usage**:
 
 ```php
